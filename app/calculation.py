@@ -13,6 +13,31 @@ from app.operations import (
     AbsoluteDifference,
 )
 
+class Calculation:
+    """Represent a single calculation."""
+
+    def __init__(self, operation, a, b, result, timestamp):
+        self.operation = operation
+        self.a = a
+        self.b = b
+        self.result = result
+        self.timestamp = timestamp
+
+    def to_dict(self):
+        """Convert the calculation into a dictionary."""
+        return {
+            "operation": self.operation,
+            "a": self.a,
+            "b": self.b,
+            "result": self.result,
+            "timestamp": self.timestamp,
+        }
+
+    def __getitem__(self, key):
+        return self.to_dict()[key]
+
+    def copy(self):
+        return self.to_dict().copy()
 
 class OperationFactory:
     """Create operation objects based on operation names."""
