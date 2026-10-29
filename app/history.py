@@ -2,16 +2,17 @@ import pandas as pd
 from pathlib import Path
 from datetime import datetime
 
+from app.calculation import Calculation
 from app.calculator_memento import CalculatorMemento
 from app.exceptions import HistoryError
 
 
 class History:
-    """Manage calculation history, undo, redo, and CSV persistence."""
+    """Manage calculation history, including undo, redo, and CSV persistence."""
 
     def __init__(self, max_history=100):
-        self.max_history = max_history
         self.calculations = []
+        self.max_history = max_history
         self.undo_stack = []
         self.redo_stack = []
 
@@ -37,8 +38,8 @@ class History:
             CalculatorMemento(self.calculations.copy())
         )
 
-        previous_state = self.undo_stack.pop()
-        self.calculations = previous_state.get_state()
+        memento = self.undo_stack.pop()
+        self.calculations = memento.get_state()
 
         if self.calculations:
             return self.calculations[-1]
@@ -54,8 +55,8 @@ class History:
             CalculatorMemento(self.calculations.copy())
         )
 
-        next_state = self.redo_stack.pop()
-        self.calculations = next_state.get_state()
+        memento = self.redo_stack.pop()
+        self.calculations = memento.get_state()
 
         if self.calculations:
             return self.calculations[-1]
@@ -63,8 +64,8 @@ class History:
         return None
 
     def clear(self):
-        """Clear calculation history and undo/redo stacks."""
-        self.calculations.clear()
+        """Clear calculation history."""
+        self.calculations = []
         self.undo_stack.clear()
         self.redo_stack.clear()
 
@@ -72,88 +73,81 @@ class History:
         """Return a copy of calculation history."""
         return self.calculations.copy()
 
-    def save_to_csv(self, file_path):
-        """Save calculation history to a CSV file using pandas."""
+    def save_to_csv(self, filepath):
+        """Save calculation history to a CSV file."""
         try:
-            path = Path(file_path)
-            path.parent.mkdir(parents=True, exist_ok=True)
-
             records = []
 
             for calculation in self.calculations:
-                record = calculation.copy()
+                if isinstance(calculation, Calculation):
+                    record = calculation.to_dict()
+                else:
+                    record = calculation.copy()
 
-                if "timestamp" not in record:
+                if "timestamp" not in record or not record["timestamp"]:
                     record["timestamp"] = datetime.now().isoformat()
 
                 records.append(record)
 
-            columns = [
-                "operation",
-                "a",
-                "b",
-                "result",
-                "timestamp",
-            ]
-
-            dataframe = pd.DataFrame(records, columns=columns)
-
-            dataframe.to_csv(
-                path,
-                index=False,
-                encoding="utf-8",
+            dataframe = pd.DataFrame(
+                records,
+                columns=["operation", "a", "b", "result", "timestamp"]
             )
+
+            filepath = Path(filepath)
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+
+            dataframe.to_csv(filepath, index=False)
 
         except (OSError, ValueError, TypeError) as error:
             raise HistoryError(
                 f"Could not save history: {error}"
             ) from error
 
-    def load_from_csv(self, file_path):
-        """Load calculation history from a CSV file using pandas."""
-        try:
-            path = Path(file_path)
+    def load_from_csv(self, filepath):
+        """Load calculation history from a CSV file."""
+        filepath = Path(filepath)
 
-            if not path.exists():
-                raise HistoryError(
-                    f"History file does not exist: {path}"
+        if not filepath.exists():
+            raise HistoryError(
+                f"History file not found: {filepath}"
                 )
 
-            dataframe = pd.read_csv(path)
+        try:
+            dataframe = pd.read_csv(filepath)
 
-            required_columns = {
+            required_columns = [
                 "operation",
                 "a",
                 "b",
                 "result",
                 "timestamp",
-            }
+            ]
 
-            if not required_columns.issubset(dataframe.columns):
+            if not all(
+                column in dataframe.columns
+                for column in required_columns
+            ):
                 raise HistoryError(
                     "CSV file is missing required columns."
                 )
 
-            loaded_calculations = dataframe.to_dict(
-                orient="records"
-            )
+            loaded_calculations = []
 
-            self.calculations = loaded_calculations[
-                -self.max_history:
-            ]
+            for _, row in dataframe.iterrows():
+                calculation = Calculation(
+                    operation=row["operation"],
+                    a=row["a"],
+                    b=row["b"],
+                    result=row["result"],
+                    timestamp=row["timestamp"],
+                )
 
-            self.undo_stack.clear()
-            self.redo_stack.clear()
+                loaded_calculations.append(calculation)
 
-        except HistoryError:
-            raise
+            self.calculations = loaded_calculations[-self.max_history:]
 
-        except (
-            OSError,
-            ValueError,
-            pd.errors.ParserError,
-            KeyError,
-        ) as error:
+        except (OSError, ValueError, TypeError, KeyError) as error:
             raise HistoryError(
                 f"Could not load history: {error}"
             ) from error
