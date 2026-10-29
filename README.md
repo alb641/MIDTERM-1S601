@@ -25,6 +25,7 @@ The calculator uses design patterns to organize its functionality and improve ma
 - Automatic saving of calculation history
 - Configuration through environment variables
 - Input validation and error handling
+- NEW for extra credit: Color-coded terminal output using Colorama for results, errors, and calculator messages
 
 ## Design Patterns
 
@@ -144,7 +145,7 @@ The calculator will display a welcome message and prompt you to enter a command.
 
 ### Example
 
-```text
+```
 Welcome to the Python Calculator!
 Type 'help' to view available commands.
 
@@ -209,6 +210,7 @@ The workflow verifies that:
 - Python
 - pandas
 - python-dotenv
+- Colorama
 - pytest
 - pytest-cov
 - GitHub Actions

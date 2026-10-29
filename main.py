@@ -1,3 +1,6 @@
+from colorama import Fore, Style, init
+init(autoreset=True)
+
 from app.calculator import Calculator
 from app.calculator_config import CalculatorConfig
 from app.exceptions import CalculatorError
@@ -38,15 +41,15 @@ def main():
             f"{config.history_dir}/calculator_history.csv"
         )
 
-        print("Welcome to the Python Calculator!")
-        print("Type 'help' to view available commands.")
+        print(Fore.CYAN + "Welcome to the Python Calculator!")
+        print(Fore.YELLOW + "Type 'help' to view available commands.")
 
         while True:
             try:
                 command = input("\nEnter command: ").strip().lower()
 
                 if command == "exit":
-                    print("Goodbye!")
+                    print(Fore.CYAN + "Goodbye!")
                     break
 
                 elif command == "help":
@@ -98,16 +101,16 @@ def main():
 
                     result = calculator.calculate(command, a, b)
 
-                    print(f"Result: {round(result, config.precision)}")
+                    print(Fore.GREEN + f"Result: {round(result, config.precision)}")
 
                 else:
                     print("Invalid command. Type 'help' for options.")
 
             except CalculatorError as error:
-                print(f"Error: {error}")
+                print(Fore.RED + f"Error: {error}")
 
             except (ValueError, TypeError) as error:
-                print(f"Invalid input: {error}")
+                print(Fore.RED + f"Invalid input: {error}")
 
     except CalculatorError as error:
         print(f"Calculator startup error: {error}")
