@@ -1,0 +1,10 @@
+.env
+logs/
+history/
+__pycache__/
+*.pyc
+venv/
+.venv/
+.coverage
+htmlcov/
+.vscode/
